@@ -2,12 +2,19 @@
 
 ## Servlet
 
-* [会话跟踪](servlet/会话跟踪.md)
-* [请求转发](servlet/请求转发.md)
+* [Servlet 介绍](servlet/servlet-introduction.md)
+* [Servlet 要点](servlet/servlet-mainpoint.md)
+* [Session 管理](servlet/session-management.md)
+* [EL 表达式](servlet/el.md)
+* [Servlet API](servlet/servlet-api.md)
+* [字符编码](servlet/encoding.md)
 
 ## JSP
 
+* [JSP 介绍](jsp/jsp-introduction.md)
+* [JSP 要点](jsp/jsp-mainpoint.md)
 * [JSTL](jsp/jstl.md)
+* [自定义标签](jsp/tag-ext.md)
 
 ## 视图技术
 
