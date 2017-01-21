@@ -1,30 +1,43 @@
 # Servlet 要点
 
-## @WebServlet
+## 配置 Servlet
 
-使用 `@WebServlet` 可以告知 Web 容器哪些 Servlet 会提供服务以及额外的信息。
+使用 `@WebServlet` 可以声明一个 Servlet。Servlet 还必须继承 `HttpServlet` 类。
 
 ```java
-@WebServlet("/hello.view")
+@WebServlet("/hello")
 public class HelloServlet extends HttpServlet {
-
 	...
 }
 ```
 
 ```java
-@WebServlet(urlPatterns={"/hello.view"}, loadOnStartup=1)
+@WebServlet(urlPatterns = { "/hello" }, loadOnStartup=1, 
+	initParams = {
+		@WebInitParam(name = "param1", value = "value1"),
+		@WebInitParam(name = "param2", value = "value2") 
+	}
+)
 public class HelloServlet extends HttpServlet {
-	
 	...
 }
 ```
 
-默认情况下，Web 容器会在首次请求某个 Servlet 时才将它实例化并执行初始化。如果希望应用程序启动时，就将 Servlet 类载入、实例化和初始化，可以使用 loadOnStartup 设置。设置大于 0的 值（默认值为 -1），表示启动应用程序后就要初始化 Servlet；数字代表了 Servlet 的初始顺序，容器会保证具有较小数字的 Servlet 优先初始化。
+在 `@WebServlet` 中可以对 Servlet 进行以下配置：
 
-如果有多个 Servlet 在设置 loadOnStartup 时使用了相同的数字值，则容器实现厂商可以自行决定要如何载入哪个 Servlet。
+* 使用 `urlPatterns` 设置指定 URL 模式。
 
-以上注解配置等效于下面的 web.xml 配置：
+* 使用 `loadOnStartup` 设置指定 Servlet 的加载时机。
+
+	默认情况下，Web 容器会在首次请求某个 Servlet 时才将它实例化并执行初始化。如果希望应用程序启动时，就将 Servlet 类载入、实例化和初始化，可以使用 `loadOnStartup` 设置。设置大于 0 的 值（默认值为 -1），表示启动应用程序后就要初始化 Servlet；数字代表了 Servlet 的初始顺序，容器会保证具有较小数字的 Servlet 优先初始化。
+
+	如果有多个 Servlet 在设置 `loadOnStartup` 时使用了相同的数字值，则容器实现厂商可以自行决定要如何载入哪个 Servlet。
+
+* 使用 `@WebInitParam` 设置 Servlet 初始参数。
+
+	Servlet 初始参数通常作为常数设置。
+
+可以在 web.xml 中编写等效的配置：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -34,18 +47,122 @@ public class HelloServlet extends HttpServlet {
 	<servlet>
 		<servlet-name>HelloServlet</servlet-name>
 		<servlet-class>cc.openhome.HelloServlet</servlet-class>
+		<init-param>
+			<param-name>param1</param-name>
+			<param-value>value1</param-value>
+		</init-param>
+		<init-param>
+			<param-name>param2</param-name>
+			<param-value>value2</param-value>
+		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>HelloServlet</servlet-name>
-		<url-pattern>/hello.view</url-pattern>
+		<url-pattern>/hello</url-pattern>
 	</servlet-mapping>
 </web-app>
 ```
 
 如果有多个 Servlet 在设置 `<load-on-startup>` 时使用相同的数字值，则依其在 web.xml 中设置的顺序来初始化 Servlet。
 
-web.xml 中的设置会覆盖掉 Servlet 中的注解设置。所以，可以使用注解来作默认值，而 web.xml 来作日后更改设置值之用。
+web.xml 中的设置会覆盖掉 Servlet 中的注解设置。所以，可以使用注解来作默认值，而 web.xml 来作日后更改设置值之用，这样便避免了修改源代码、重新编译和部署的操作。
+
+## 配置 Listener
+
+使用 `@WebListener` 可以声明一个监听器。监听器类还必须实现一个或多个特定 XXXListener 接口（如 `ServletContextListener`）。
+
+```java
+@WebListener
+public class ContextParameterReader implements ServletContextListener {
+	
+ 	@Override
+	public void contextInitialized(ServletContextEvent sce) {
+		...
+	}
+
+	@Override
+	public void contextDestroyed(ServletContextEvent sce) {
+		...
+	}
+}
+```
+
+可以在 web.xml 中编写等效的配置：
+
+```xml
+<listener>
+	<listener-class>cc.openhome.ContextParameterReader</listener-class>
+</listener>
+```
+
+## 配置 Filter
+
+过滤器的设置与 Servlet 的设置很类似。
+
+可以使用 `@WebFilter` 注解声明一个 filter。过滤器还必须实现 `Filter` 接口。
+
+```java
+@WebFilter(filterName = "someFilter", urlPatterns = { "/*" }, 
+	initParams = {
+		@WebInitParam(name = "param1", value = "value1"),
+		@WebInitParam(name = "param2", value = "value2") 
+	},
+	dispatcherTypes = {
+		DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST,
+		DispatcherType.ERROR,
+		DispatcherType.ASYNC }
+)
+public class SomeFilter implements Filter {
+	...
+}
+```
+
+在 `@WebFilter` 中可以对过滤器进行以下配置：
+
+* 使用 `urlPatterns` 设置指定 URL 模式，即哪些 URL 请求必须应用该过滤器。
+
+* 使用 `servletNames` 设置指定哪些 Servlet 必须应用该过滤器。
+
+* 使用 `@WebInitParam` 设置指定过滤器的初始参数。
+
+* 使用 `dispatcherTypes` 设置指定触发过滤器的时机。默认值为 `DispatcherType.REQUEST`，可选值包括：
+
+	* DispatcherType.FORWARD 通过 `RequestDispatcher#forward()` 而来的请求
+	* DispatcherType.INCLUDE 通过 `RequestDispatcher#include()` 而来的请求
+	* DispatcherType.REQUEST 浏览器直接发出的请求
+	* DispatcherType.ERROR 由容器处理例外而转发过来的请求
+	* DispatcherType.ASYNC 异步处理的请求
+
+可以在 web.xml 中编写等效的配置：
+
+```xml
+<filter>
+	<filter-name>someFilter</filter-name>
+	<filter-class>cc.openhome.SomeFilter</filter-class>
+	<init-param>
+		<param-name>param1</param-name>
+		<param-value>value1</param-value>
+	</init-param>
+	<init-param>
+		<param-name>param2</param-name>
+		<param-value>value2</param-value>
+	</init-param>
+</filter>
+<filter-mapping>
+	<filter-name>someFilter</filter-name>
+	<url-patterns>/*</url-patterns>
+	<!-- <servlet-names>SomeServlet</servlet-names> -->
+
+	<dispatcher>REQUEST</dispatcher>
+	<dispatcher>FORWARD</dispatcher>
+	<dispatcher>INCLUDE</dispatcher>
+	<dispatcher>ERROR</dispatcher>
+	<dispatcher>ASYNC</dispatcher>
+</filter-mapping>
+```
+
+如果过滤器同时具有 `<url-pattern>` 和 `<servlet-name>` 设置，则先比对 `<url-pattern>`，在比对 `<servlet-name>`。如果某个 URL 或 Servlet 会应用多个过滤器，则根据 `<filter-mapping>` 在 web.xml 中出现的先后顺序，来决定过滤器的执行顺序。
 
 ## URL 模式设置
 
@@ -218,7 +335,7 @@ protected void doPost(HttpServletRequest request, HttpServletResponse response)
 response.sendError(HttpServletResponse.SC_NOT_FOUND);
 ```
 
-## 设置和取得属性
+## 作用域对象及其属性
 
 * HttpServletRequest
 * HttpSession

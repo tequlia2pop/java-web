@@ -1,10 +1,10 @@
 # Servlet API
 
-## HTTPServlet
+## Servlet
 
-![](images/HttpServlet-API.png)
+![](images/Servlet-API.png)
 
-**javax.servlet.Servlet** 定义了 Servlet 应当有的基本行为。
+**javax.servlet.Servlet** 接口定义了 Servlet 的生命周期方法：`init()`、`service()` 和 `destroy()`。所有的 Servlet 实例必须直接或间接地实现该接口才能在 Web 容器中运行。
 
 该接口定义了初始化 servlet、服务请求和从服务器中删除 servlet 的方法。这些方法被称为生命周期方法，并按以下顺序调用：
 
@@ -12,9 +12,28 @@
 * 处理所有从客户端到 `service` 方法的调用。
 * 取消 servlet 服务，然后使用 `destroy` 方法销毁 servlet，然后执行垃圾收集和 finalized。
 
-**javax.servlet.GenericServlet** 定义一个通用的、与协议无关的 servlet。要编写用于 Web 的 HTTP servlet，需要扩展 `javax.servlet.http.HttpServlet`。
+**javax.servlet.ServletConfig** 是 Servlet 设置信息的代表对象，容器会为每个 Servlet 设置信息产生一个 Servlet 和 ServletConfig 实例。
+
+* getInitParameter() 取得 Servlet 的初始化参数。
+* getInitParameterNames() 取得 Servlet 的初始化参数。
+
+**javax.servlet.GenericServlet** 定义一个通用的、与协议无关的 Servlet。它实现了 `Servlet` 和 `ServletConfig` 接口，它包含了两者所定义方法的简单实现，实现内容主要是通过 `ServletConfig` 来取得一些相关信息。所以在实现 Servlet 时，可以通过这些方法来取得所需的相关信息，而不用管 `ServletConfig` 的存在。
 
 该类的 `service` 方法标记为 abstract。
+
+## ServletContext
+
+`javax.servlet.ServletContext`  代表了整个 Web 应用程序。当整个 Web 应用程序加载都 Web 容器后，容器会生成一个 `ServletContext` 对象作为整个应用程序的代表。
+
+* getRequestDispatcher() 取得 `RequestDispatcher` 实例，然后可以进行请求的转发（forward）或包含（include）。实际上 `HttpServletRequest` 的 `getRequestDispatcher()` 最终都会委托个 `ServletContext` 的 `getRequestDispatcher()` 来执行。
+* getResourcePaths() 返回 Web 应用程序的某个目录下的文件列表。
+* getResourceAsStream() 可以使用该方法来读取 Web 应用程序中某个文件的内容。使用时指定路径必须以 "/" 作为开头，表示相对于应用程序环境根目录，或者相对于 `/WEB-INF/lib` 中 JAR 文件里的 `META-INF/resources` 的路径。
+
+每个 Web 应用程序都会有一个对应的 `ServletContext`，针对应用程序初始化时需要的一些参数数据，可以在 web.xml 中使用 `<context-param>` 定义初始参数，结合 `ServletContextListener` 来完成。
+
+## HTTPServlet
+
+![](images/HttpServlet-API.png)
 
 **javax.servlet.http.HttpServlet** 要创建适合于 Web 站点的 HTTP servlet，应该继承该抽象类。该类的 `service()` 方法通过判断 HTTP 请求的方式（GET、HEAD、POST、PUT、DELETE、OPTIONS、TRACE 等），再分别调用对应的 `doXXX()`。所以如果想针对 GET、POST 等请求进行处理，需要覆盖对应的 `doGet()`、`doPost()` 方法。
 
@@ -63,7 +82,44 @@
 * sendRedirect() 重定向。
 * sendError() 传送错误状态信息。
 
-## Servelt 的生命周期
+## Listener
 
-请求和响应对象的创建和销毁。
+ServletRequest 监听器
+
+* ServletRequestListener ServletRequest 的生命周期监听器。它定义了在 ServletRequest 创建和销毁时会触发的方法。
+
+* ServletRequestAttributeListener ServletRequest 的属性改变监听器。它定义了在属性被设置、移除或替换时会触发的方法。
+
+HttpSession 监听器
+
+* HttpSessionListener HttpSession 生命周期监听器。它定义了在 HttpSession 创建和销毁时会触发的方法。
+
+	通过该监听器可以实现查看在线用户信息列表，以及并发会话控制。
+
+* HttpSessionAttributeListener HttpSession 属性改变监听器。它定义了在属性被设置、移除或替换时会触发的方法。
+
+* HttpSessionBindingListener  HttpSession 对象绑定监听器。它定义了在对象被绑定和解绑时会触发的方法。
+
+* HttpSessionActivationListener HttpSession 对象迁移监听器。在使用分布式环境时，应用程序的对象可能分散在多个 JVM 中。当 HttpSession 要从一个 JVM 迁移到另一个 JVM 时，必须对所有的属性对象进行序列化，在 HttpSession 迁移到另一个 JVM 后，必须对所有的属性对象进行反序列化。对于实现了 `HttpSessionActivationListener` 的属性对象,在进行序列化和反序列化时会触发对应的方法。
+
+ServletContext 监听器
+
+* ServletContextListener ServletContext 生命周期监听器。它定义了在 Web 应用程序初始化后或即将销毁前会触发的方法。
+
+	有些应用程序的设置，必须在 Web 应用程序初始化时进行，例如 HttpSession Cookie 设置。除了在 web.xml 中定义外，还可以在 ServletContextListener 的 `contextInitialized()` 中定义。
+
+* ServletContextAttributeListener ServletContext 属性变化监听器。它定义了在属性被设置、移除或替换时会触发的方法。
+
+## Filter
+
+### 请求封装器
+
+![](images/请求封装器.png)
+
+### 响应封装器
+
+![](images/响应封装器.png)
+
+
+	
 
